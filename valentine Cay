@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Be My Valentine?</title>
+  <style>
+    :root{
+      --bg1:#ffdde1;
+      --bg2:#ee9ca7;
+      --card:#ffffffcc;
+      --text:#2b2b2b;
+      --yes:#22c55e;
+      --no:#ef4444;
+      --shadow: 0 18px 60px rgba(0,0,0,.18);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      color:var(--text);
+      background: radial-gradient(1200px 800px at 20% 10%, var(--bg1), transparent 60%),
+                  radial-gradient(1000px 700px at 80% 70%, var(--bg2), transparent 55%),
+                  linear-gradient(135deg, #fff1f2, #ffd6e0);
+      overflow:hidden;
+    }
+
+    /* Confetti canvas sits above everything */
+    #confettiCanvas{
+      position:fixed;
+      inset:0;
+      width:100vw;
+      height:100vh;
+      pointer-events:none;
+      z-index:999;
+    }
+
+    .wrap{
+      min-height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+
+    .card{
+      width:min(720px, 95vw);
+      background:var(--card);
+      backdrop-filter: blur(10px);
+      border:1px solid rgba(255,255,255,.6);
+      border-radius:24px;
+      box-shadow:var(--shadow);
+      padding:28px 22px;
+      text-align:center;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .badge{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding:8px 14px;
+      border-radius:999px;
+      background: rgba(255,255,255,.7);
+      border:1px solid rgba(0,0,0,.06);
+      font-weight:600;
+      letter-spacing:.2px;
+      margin-bottom:12px;
+    }
+
+    h1{
+      margin:10px 0 8px;
+      font-size: clamp(26px, 4.6vw, 40px);
+      line-height:1.1;
+    }
+    p{
+      margin: 0 0 18px;
+      opacity:.85;
+      font-size: clamp(14px, 2.2vw, 16px);
+    }
+
+    .art{
+      width:min(320px, 70vw);
+      margin: 10px auto 12px;
+      display:block;
+      filter: drop-shadow(0 12px 22px rgba(0,0,0,.12));
+    }
+
+    .zone{
+      margin-top:14px;
+      display:flex;
+      gap:14px;
+      justify-content:center;
+      align-items:center;
+      position:relative;
+      padding:14px 0 10px;
+    }
+
+    button{
+      border:0;
+      font-weight:800;
+      padding:14px 22px;
+      border-radius:14px;
+      cursor:pointer;
+      font-size:16px;
+      transition: transform .15s ease, filter .15s ease;
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+      box-shadow: 0 10px 24px rgba(0,0,0,.12);
+    }
+    button:active{transform: scale(.96)}
+    #yesBtn{
+      background: linear-gradient(180deg, #34d399, #16a34a);
+      color:white;
+    }
+    #yesBtn:hover{filter: brightness(1.05)}
+    #noBtn{
+      background: linear-gradient(180deg, #fb7185, #ef4444);
+      color:white;
+      position:relative;
+    }
+    #noBtn:hover{filter: brightness(1.06)}
+
+    .hint{
+      margin-top:12px;
+      font-weight:700;
+      opacity:.9;
+      display:inline-block;
+      padding:10px 14px;
+      border-radius:999px;
+      background: rgba(0,0,0,.05);
+      border: 1px dashed rgba(0,0,0,.14);
+    }
+
+    .result{
+      display:none;
+      margin-top:14px;
+      padding:14px 14px 4px;
+    }
+    .result h2{
+      margin:0 0 8px;
+      font-size: clamp(26px, 4vw, 36px);
+    }
+    .result p{
+      margin:0 0 16px;
+      font-size: clamp(14px, 2.2vw, 17px);
+    }
+
+    .footer{
+      margin-top:10px;
+      font-size:12px;
+      opacity:.6;
+    }
+
+    /* Floating hearts background (CSS only) */
+    .hearts{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      opacity:.35;
+    }
+    .heart{
+      position:absolute;
+      width:14px;height:14px;
+      transform: rotate(45deg);
+      background:#ff4d6d;
+      border-radius:3px;
+      animation: floatUp linear infinite;
+      filter: blur(.2px);
+    }
+    .heart:before,.heart:after{
+      content:"";
+      position:absolute;
+      width:14px;height:14px;
+      border-radius:50%;
+      background:#ff4d6d;
+    }
+    .heart:before{left:-7px; top:0}
+    .heart:after{left:0; top:-7px}
+
+    @keyframes floatUp{
+      from{ transform: translateY(120%) rotate(45deg); }
+      to{ transform: translateY(-140%) rotate(45deg); }
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="confettiCanvas"></canvas>
+
+  <div class="wrap">
+    <main class="card">
+      <div class="hearts" aria-hidden="true" id="hearts"></div>
+
+      <div class="badge">💌 Valentine Request</div>
+      <h1><span id="name">nirali</span>, will you be my valentine?</h1>
+      <p>There is a correct answer. Choose wisely. (I’m kidding… mostly.)</p>
+
+      <!-- Cute SVG bear + heart -->
+      <svg class="art" viewBox="0 0 320 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Cute bear holding a heart">
+        <defs>
+          <linearGradient id="fur" x1="0" x2="1">
+            <stop offset="0" stop-color="#cfa382"/>
+            <stop offset="1" stop-color="#b88463"/>
+          </linearGradient>
+          <linearGradient id="belly" x1="0" x2="1">
+            <stop offset="0" stop-color="#f5d7c2"/>
+            <stop offset="1" stop-color="#efc7ab"/>
+          </linearGradient>
+          <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="1.8"/>
+          </filter>
+        </defs>
+
+        <!-- shadow -->
+        <ellipse cx="160" cy="208" rx="92" ry="16" fill="#000" opacity=".12" filter="url(#soft)"/>
+
+        <!-- ears -->
+        <circle cx="110" cy="64" r="28" fill="url(#fur)"/>
+        <circle cx="210" cy="64" r="28" fill="url(#fur)"/>
+        <circle cx="110" cy="64" r="16" fill="#e7c2a6" opacity=".9"/>
+        <circle cx="210" cy="64" r="16" fill="#e7c2a6" opacity=".9"/>
+
+        <!-- head -->
+        <circle cx="160" cy="92" r="58" fill="url(#fur)"/>
+
+        <!-- face -->
+        <circle cx="138" cy="88" r="10" fill="#1f2937"/>
+        <circle cx="182" cy="88" r="10" fill="#1f2937"/>
+        <circle cx="134" cy="84" r="3" fill="#fff" opacity=".9"/>
+        <circle cx="178" cy="84" r="3" fill="#fff" opacity=".9"/>
+
+        <!-- muzzle -->
+        <ellipse cx="160" cy="112" rx="30" ry="22" fill="#e7c2a6"/>
+        <path d="M154 110c4 6 8 6 12 0" stroke="#111827" stroke-width="4" stroke-linecap="round" fill="none"/>
+        <path d="M160 112c0 10-10 12-16 8" stroke="#111827" stroke-width="3" stroke-linecap="round" fill="none"/>
+        <path d="M160 112c0 10 10 12 16 8" stroke="#111827" stroke-width="3" stroke-linecap="round" fill="none"/>
+
+        <!-- body -->
+        <ellipse cx="160" cy="164" rx="74" ry="62" fill="url(#fur)"/>
+        <ellipse cx="160" cy="172" rx="46" ry="40" fill="url(#belly)"/>
+
+        <!-- arms -->
+        <ellipse cx="108" cy="162" rx="26" ry="20" fill="url(#fur)"/>
+        <ellipse cx="212" cy="162" rx="26" ry="20" fill="url(#fur)"/>
+
+        <!-- heart -->
+        <path d="M160 156
+                 C160 145, 140 140, 132 152
+                 C124 164, 134 180, 160 192
+                 C186 180, 196 164, 188 152
+                 C180 140, 160 145, 160 156Z"
+              fill="#ff4d6d"/>
+        <path d="M148 156c-8-10-22-2-18 10" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".6"/>
+
+        <!-- blush -->
+        <circle cx="122" cy="108" r="9" fill="#ff6b8a" opacity=".35"/>
+        <circle cx="198" cy="108" r="9" fill="#ff6b8a" opacity=".35"/>
+      </svg>
+
+      <section class="zone" id="zone">
+        <button id="yesBtn">Yes 💖</button>
+        <button id="noBtn">No</button>
+      </section>
+
+      <div class="hint" id="hint">“No” seems a bit shy 😈</div>
+
+      <section class="result" id="result">
+        <h2>YAY! 🎉</h2>
+        <p>Locked in. You’re officially my Valentine. 💘</p>
+        <p class="footer">PS: Screenshot this and send it to me for maximum bragging rights.</p>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // Optional: set name dynamically
+    // document.getElementById("name").textContent = "Nirali";
+
+    /* ---------- Floating hearts (background) ---------- */
+    const heartsWrap = document.getElementById("hearts");
+    for (let i = 0; i < 18; i++) {
+      const h = document.createElement("div");
+      h.className = "heart";
+      const left = Math.random() * 100;
+      const dur = 6 + Math.random() * 10;
+      const delay = Math.random() * 4;
+      const scale = 0.7 + Math.random() * 1.3;
+      h.style.left = left + "%";
+      h.style.animationDuration = dur + "s";
+      h.style.animationDelay = delay + "s";
+      h.style.transform = `translateY(120%) rotate(45deg) scale(${scale})`;
+      h.style.opacity = (0.15 + Math.random() * 0.35).toFixed(2);
+      heartsWrap.appendChild(h);
+    }
+
+    const yesBtn = document.getElementById("yesBtn");
+    const noBtn  = document.getElementById("noBtn");
+    const zone   = document.getElementById("zone");
+    const result = document.getElementById("result");
+    const hint   = document.getElementById("hint");
+
+    let noCount = 0;
+    const hints = [
+      "“No” seems a bit shy 😈",
+      "Try again. I believe in you. 😌",
+      "That button is… oddly slippery. 🧼",
+      "Okay, now you’re just teasing. 🙃",
+      "I’m not saying “Yes” is correct… but it is. 😏",
+      "Fine. You win. (You don’t.) 😂"
+    ];
+
+    /* ---------- Confetti ---------- */
+    const confettiCanvas = document.getElementById("confettiCanvas");
+    const ctx = confettiCanvas.getContext("2d");
+    let confetti = [];
+    let confettiRunning = false;
+
+    function resizeConfettiCanvas() {
+      confettiCanvas.width = window.innerWidth * devicePixelRatio;
+      confettiCanvas.height = window.innerHeight * devicePixelRatio;
+      ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    }
+    window.addEventListener("resize", resizeConfettiCanvas);
+    resizeConfettiCanvas();
+
+    function makeConfettiBurst() {
+      const count = 220;
+      for (let i = 0; i < count; i++) {
+        confetti.push({
+          x: window.innerWidth / 2,
+          y: window.innerHeight * 0.25,
+          vx: (Math.random() - 0.5) * 14,
+          vy: Math.random() * -12 - 6,
+          g: 0.35 + Math.random() * 0.25,
+          r: 3 + Math.random() * 5,
+          rot: Math.random() * Math.PI,
+          vr: (Math.random() - 0.5) * 0.35,
+          life: 140 + Math.random() * 60,
+          hue: Math.floor(Math.random() * 360)
+        });
+      }
+    }
+
+    function confettiLoop() {
+      if (!confettiRunning) return;
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+      confetti = confetti.filter(p => p.life-- > 0);
+      for (const p of confetti) {
+        p.vy += p.g;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.rot += p.vr;
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.fillStyle = `hsl(${p.hue} 90% 60%)`;
+        ctx.fillRect(-p.r, -p.r, p.r * 2.2, p.r * 1.2);
+        ctx.restore();
+      }
+
+      if (confetti.length === 0) confettiRunning = false;
+      requestAnimationFrame(confettiLoop);
+    }
+
+    function fullScreenConfetti() {
+      confettiRunning = true;
+      makeConfettiBurst();
+      confettiLoop();
+    }
+
+    /* ---------- No button dodge ---------- */
+    function moveNoButton() {
+      // Keep it within the card area
+      const card = document.querySelector(".card");
+      const cardRect = card.getBoundingClientRect();
+      const btnRect = noBtn.getBoundingClientRect();
+
+      const padding = 18;
+      const maxX = cardRect.width - btnRect.width - padding;
+      const maxY = 140; // keep it near the buttons area
+      const x = padding + Math.random() * Math.max(40, maxX - padding);
+      const y = 110 + Math.random() * Math.max(20, maxY - padding);
+
+      // position relative to zone
+      noBtn.style.position = "absolute";
+      noBtn.style.left = x + "px";
+      noBtn.style.top = y + "px";
+    }
+
+    function updateHint() {
+      noCount++;
+      hint.textContent = hints[Math.min(noCount, hints.length - 1)];
+    }
+
+    // Desktop hover + mobile tap triggers
+    noBtn.addEventListener("mouseenter", () => {
+      moveNoButton();
+      updateHint();
+    });
+    noBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      moveNoButton();
+      updateHint();
+    });
+
+    /* ---------- Yes click ---------- */
+    yesBtn.addEventListener("click", () => {
+      zone.style.display = "none";
+      hint.style.display = "none";
+      result.style.display = "block";
+      resizeConfettiCanvas();
+      fullScreenConfetti();
+    });
+  </script>
+</body>
+</html>
